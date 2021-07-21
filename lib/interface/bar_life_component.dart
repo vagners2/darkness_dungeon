@@ -28,8 +28,8 @@ class BarLifeComponent extends InterfaceComponent {
     if (this.gameRef.player != null) {
       life = this.gameRef.player.life;
       maxLife = this.gameRef.player.maxLife;
-      if (this.gameRef.player is Knight) {
-        stamina = (this.gameRef.player as Knight).stamina;
+      if (this.gameRef.player is GamePlayer) {
+        stamina = (this.gameRef.player as GamePlayer).stamina;
       }
     }
     super.update(t);

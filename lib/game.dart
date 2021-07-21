@@ -26,9 +26,7 @@ class Game extends StatefulWidget {
   _GameState createState() => _GameState();
 }
 
-class _GameState extends State<Game>
-    with WidgetsBindingObserver
-    implements GameListener {
+class _GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
   bool showGameOver = false;
 
   GameController _controller;
@@ -98,7 +96,7 @@ class _GameState extends State<Game>
             )
           ],
         ),
-        player: Knight(
+        player: GamePlayer(
           initPosition: Vector2(2 * tileSize, 3 * tileSize),
         ),
         map: TiledWorldMap(

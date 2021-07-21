@@ -16,6 +16,8 @@ dependencies:
   flame_audio: ^0.1.0-rc5
   flame_splash_screen: ^0.0.1
   url_launcher: ^5.4.11
+  socket_io_client: ^1.0.1
+
 
 
 dev_dependencies:
@@ -50,6 +52,7 @@ flutter:
     - assets/images/player/
     - assets/images/itens/
     - assets/images/tiled/
+    - assets/images/tiled/map_01/
     - assets/audio/
     - resources/lang/en.json
     - resources/lang/pt.json

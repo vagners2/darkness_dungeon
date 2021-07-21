@@ -2,22 +2,32 @@ import 'dart:async' as async;
 
 import 'package:bonfire/bonfire.dart';
 import 'package:darkness_dungeon/main.dart';
+import 'package:darkness_dungeon/socket/socker_manager.dart';
 import 'package:darkness_dungeon/util/functions.dart';
 import 'package:darkness_dungeon/util/game_sprite_sheet.dart';
 import 'package:darkness_dungeon/util/player_sprite_sheet.dart';
 import 'package:darkness_dungeon/util/sounds.dart';
 import 'package:flutter/material.dart';
+import 'package:darkness_dungeon/util/extensions.dart';
 
-class Knight extends SimplePlayer with Lighting, ObjectCollision {
+class GamePlayer extends SimplePlayer with Lighting, ObjectCollision {
   final Vector2 initPosition;
-  double attack = 25;
-  double stamina = 100;
+  final int id;
+  final String nick;
+  double attack = 5;
+  double stamina = 9999;
   double initSpeed = tileSize / 0.25;
   async.Timer _timerStamina;
   bool containKey = false;
   bool showObserveEnemy = false;
 
-  Knight({
+  TextPaint _textConfig;
+  JoystickMoveDirectional currentDirection;
+  String directionEvent = 'IDLE';
+
+  GamePlayer({
+    this.id,
+    this.nick,
     this.initPosition,
   }) : super(
           animation: PlayerSpriteSheet.playerAnimations(),
@@ -48,21 +58,77 @@ class Knight extends SimplePlayer with Lighting, ObjectCollision {
         color: Colors.deepOrangeAccent.withOpacity(0.2),
       ),
     );
+
+    _textConfig = TextPaint(
+      config: TextPaintConfig(
+        fontSize: tileSize / 4,
+        color: Colors.white,
+      ),
+    );
   }
 
   @override
   void joystickChangeDirectional(JoystickDirectionalEvent event) {
     this.speed = initSpeed * event.intensity;
+
+    if (event.directional != currentDirection && position != null) {
+      currentDirection = event.directional;
+      switch (currentDirection) {
+        case JoystickMoveDirectional.MOVE_UP:
+          directionEvent = 'UP';
+          break;
+        case JoystickMoveDirectional.MOVE_UP_LEFT:
+          directionEvent = 'UP_LEFT';
+          break;
+        case JoystickMoveDirectional.MOVE_UP_RIGHT:
+          directionEvent = 'UP_RIGHT';
+          break;
+        case JoystickMoveDirectional.MOVE_RIGHT:
+          directionEvent = 'RIGHT';
+          break;
+        case JoystickMoveDirectional.MOVE_DOWN:
+          directionEvent = 'DOWN';
+          break;
+        case JoystickMoveDirectional.MOVE_DOWN_RIGHT:
+          directionEvent = 'DOWN_RIGHT';
+          break;
+        case JoystickMoveDirectional.MOVE_DOWN_LEFT:
+          directionEvent = 'DOWN_LEFT';
+          break;
+        case JoystickMoveDirectional.MOVE_LEFT:
+          directionEvent = 'LEFT';
+          break;
+        case JoystickMoveDirectional.IDLE:
+          directionEvent = 'IDLE';
+          break;
+      }
+      SocketManager().send(
+        'message',
+        {
+          'action': 'MOVE',
+          'time': DateTime.now().toIso8601String(),
+          'data': {
+            'player_id': 0,
+            'direction': directionEvent,
+            'position': {'x': (position.left / tileSize), 'y': (position.top / tileSize)},
+          }
+        },
+      );
+    }
     super.joystickChangeDirectional(event);
   }
 
   @override
   void joystickAction(JoystickActionEvent event) {
-    if (event.id == 0 && event.event == ActionEvent.DOWN) {
+    print(event.id);
+
+    //keyboard A
+    if ((event.id == 0 || event.id == 32) && event.event == ActionEvent.DOWN) {
       actionAttack();
     }
 
-    if (event.id == 1 && event.event == ActionEvent.DOWN) {
+    //keyboard C
+    if ((event.id == 1 || event.id == 99) && event.event == ActionEvent.DOWN) {
       actionAttackRange();
     }
     super.joystickAction(event);
@@ -89,6 +155,16 @@ class Knight extends SimplePlayer with Lighting, ObjectCollision {
     if (stamina < 15) {
       return;
     }
+
+    SocketManager().send('message', {
+      'action': 'ATTACK',
+      'time': DateTime.now().toIso8601String(),
+      'data': {
+        'player_id': 0,
+        'direction': this.lastDirection.getName(),
+        'position': {'x': (position.left / tileSize), 'y': (position.top / tileSize)},
+      }
+    });
 
     Sounds.attackPlayerMelee();
     decrementStamina(15);
@@ -157,6 +233,14 @@ class Knight extends SimplePlayer with Lighting, ObjectCollision {
 
   @override
   void render(Canvas c) {
+    _textConfig.render(
+      c,
+      nick,
+      Vector2(
+        position.left + ((width - (nick.length * (width / 13))) / 2),
+        position.top - (tileSize / 3),
+      ),
+    );
     super.render(c);
   }
 
@@ -176,15 +260,26 @@ class Knight extends SimplePlayer with Lighting, ObjectCollision {
   }
 
   void decrementStamina(int i) {
-    stamina -= i;
-    if (stamina < 0) {
-      stamina = 0;
-    }
+    // stamina -= i;
+    // if (stamina < 0) {
+    //   stamina = 0;
+    // }
   }
 
   @override
   void receiveDamage(double damage, dynamic id) {
     if (isDead) return;
+
+    SocketManager().send('message', {
+      'action': 'RECEIVED_DAMAGE',
+      'time': DateTime.now().toIso8601String(),
+      'data': {
+        'player_id': 0,
+        'damage': damage,
+        'player_id_attack': id,
+      }
+    });
+
     this.showDamage(
       damage,
       config: TextPaintConfig(

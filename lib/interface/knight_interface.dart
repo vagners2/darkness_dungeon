@@ -26,7 +26,7 @@ class KnightInterface extends GameInterface {
   }
 
   void _drawKey(Canvas c) {
-    if (gameRef.player != null && (gameRef.player as Knight).containKey) {
+    if (gameRef.player != null && (gameRef.player as GamePlayer).containKey) {
       key.renderFromVector2Rect(
           c, Rect.fromLTWH(150, 20, 35, 30).toVector2Rect());
     }
